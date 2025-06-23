@@ -4,6 +4,7 @@ import 'dart:math';
 void main() {
   runApp(
     const MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.green,
         body: SafeArea(child: TarotArcScroll()),
@@ -25,9 +26,7 @@ class _TarotArcScrollState extends State<TarotArcScroll>
   double velocity = 0;
   final double radius = 600;
   final int cardCount = 78;
-  final int visibleCardCount = 10;
-  int currentStartIndex = 0;
-  final double anglePerCard = 2 * pi / 78;
+  final double anglePerCard = pi / 30; // khoảng cách giữa các lá bài
   late final AnimationController _controller;
 
   int? selectedCard;
@@ -41,7 +40,7 @@ class _TarotArcScrollState extends State<TarotArcScroll>
     )..addListener(() {
       setState(() {
         rotationOffset += velocity;
-        velocity *= 0.96;
+        velocity *= 0.95;
         if (velocity.abs() < 0.001) {
           _controller.stop();
         }
@@ -63,8 +62,10 @@ class _TarotArcScrollState extends State<TarotArcScroll>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final centerX = screenSize.width * 2;
-    final centerY = 420.0;
+    final centerX = screenSize.width / 2.3;
+    final centerY = screenSize.height * 1.8;
+    const centerAngle = 3 * pi / 2;
+    const visibleRange = (pi / 3) / 2;
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
@@ -73,48 +74,57 @@ class _TarotArcScrollState extends State<TarotArcScroll>
         });
       },
       onHorizontalDragEnd: (details) {
-        final velocityX = details.velocity.pixelsPerSecond.dx;
-        final direction = velocityX < 0 ? 1 : -1;
-
-        setState(() {
-          currentStartIndex = (currentStartIndex + direction * visibleCardCount) % cardCount;
-          if (currentStartIndex < 0) currentStartIndex += cardCount;
-        });
-
-        _startInertia(velocityX * 0.00001);
+        _startInertia(details.velocity.pixelsPerSecond.dx * 0.00001);
       },
       child: Stack(
         children: [
           Positioned.fill(
             child: Stack(
-              children: List.generate(visibleCardCount, (i) {
-                final index = (currentStartIndex + i) % cardCount;
-                final angle = (i * anglePerCard) + rotationOffset;
+              children: List.generate(cardCount, (index) {
+                final angle = index * anglePerCard + rotationOffset;
                 final normalizedAngle = angle % (2 * pi);
-                if (normalizedAngle < pi / 2 || normalizedAngle > 3 * pi / 2) {
+
+                if (normalizedAngle < centerAngle - visibleRange ||
+                    normalizedAngle > centerAngle + visibleRange) {
                   return const SizedBox();
                 }
 
+                final angleDelta = (angle - centerAngle).abs();
+                final scale = 1 - (angleDelta / pi).clamp(0.0, 0.5);
+                final adjustedCardSize =
+                    (selectedCard == index ? 280.0 : 200.0) * (0.8 + 0.4 * scale);
+
                 final x = centerX + radius * cos(angle);
                 final y = centerY + radius * sin(angle);
-                final cardSize = selectedCard == index ? 280.0 : 200.0;
 
                 return Positioned(
-                  left: x - cardSize * 0.3,
-                  top: y - cardSize / 2,
-                  child: Transform.rotate(
-                    angle: angle + pi / 2,
+                  left: x - adjustedCardSize * 0.3,
+                  top: y - adjustedCardSize / 2,
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..rotateZ(angle + pi / 2)
+                      ..rotateY((angle - centerAngle) * 0.3),
                     child: GestureDetector(
                       onTap: () => setState(() {
                         selectedCard = selectedCard == index ? null : index;
                       }),
-                      child: Hero(
-                        tag: 'card_$index',
-                        child: TarotCardWidget(
-                          imagePath: selectedCard == index
-                              ? 'assets/cards/card_${(index + 1).toString().padLeft(2, '0')}.jpg'
-                              : 'assets/cards/back.png',
-                          size: cardSize,
+                      child: AnimatedOpacity(
+                        opacity: 1,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOut,
+                        child: AnimatedScale(
+                          scale: 1,
+                          duration: const Duration(milliseconds: 500),
+                          child: Hero(
+                            tag: 'card_$index',
+                            child: TarotCardWidget(
+                              imagePath: selectedCard == index
+                                  ? 'assets/cards/card_${(index + 1).toString().padLeft(2, '0')}.jpg'
+                                  : 'assets/cards/back.png',
+                              size: adjustedCardSize,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -135,7 +145,7 @@ class _TarotArcScrollState extends State<TarotArcScroll>
                       child: TarotCardWidget(
                         imagePath:
                         'assets/cards/card_${(selectedCard! + 1).toString().padLeft(2, '0')}.jpg',
-                        size: 240,
+                        size: 300,
                       ),
                     ),
                   ),
@@ -160,10 +170,17 @@ class TarotCardWidget extends StatelessWidget {
       width: size * 0.6,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        image: DecorationImage(image: AssetImage(imagePath), fit: BoxFit.cover),
+        borderRadius: BorderRadius.circular(12),
+        image: DecorationImage(
+          image: AssetImage(imagePath),
+          fit: BoxFit.cover,
+        ),
         boxShadow: const [
-          BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 1)),
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
     );
