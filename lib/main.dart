@@ -5,10 +5,7 @@ void main() {
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.green,
-        body: SafeArea(child: TarotArcScroll()),
-      ),
+      home: Scaffold(backgroundColor: Colors.blueGrey, body: TarotArcScroll()),
     ),
   );
 }
@@ -34,18 +31,19 @@ class _TarotArcScrollState extends State<TarotArcScroll>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 16000),
-    )..addListener(() {
-      setState(() {
-        rotationOffset += velocity;
-        velocity *= 0.95;
-        if (velocity.abs() < 0.001) {
-          _controller.stop();
-        }
-      });
-    });
+    _controller =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 16000),
+        )..addListener(() {
+          setState(() {
+            rotationOffset += velocity;
+            velocity *= 0.95;
+            if (velocity.abs() < 0.001) {
+              _controller.stop();
+            }
+          });
+        });
   }
 
   void _startInertia(double initialVelocity) {
@@ -65,7 +63,7 @@ class _TarotArcScrollState extends State<TarotArcScroll>
     final centerX = screenSize.width / 2.3;
     final centerY = screenSize.height * 1.8;
     const centerAngle = 3 * pi / 2;
-    const visibleRange = (pi / 3) / 2;
+    const visibleRange = (pi / 4) / 2;
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
@@ -78,6 +76,28 @@ class _TarotArcScrollState extends State<TarotArcScroll>
       },
       child: Stack(
         children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.black87, Colors.blueGrey],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              // Nếu bạn có hình nền:
+              child: Transform.scale(
+                scale: 1.3, // 🔥 tăng giá trị này để phóng to ảnh
+                child: Image.asset(
+                  'assets/table.png',
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0.0, -0.6),
+                ),
+              ),
+
+            ),
+          ),
+
           Positioned.fill(
             child: Stack(
               children: List.generate(cardCount, (index) {
@@ -92,7 +112,8 @@ class _TarotArcScrollState extends State<TarotArcScroll>
                 final angleDelta = (angle - centerAngle).abs();
                 final scale = 1 - (angleDelta / pi).clamp(0.0, 0.5);
                 final adjustedCardSize =
-                    (selectedCard == index ? 280.0 : 200.0) * (0.8 + 0.4 * scale);
+                    (selectedCard == index ? 240.0 : 170.0) *
+                    (0.8 + 0.4 * scale);
 
                 final x = centerX + radius * cos(angle);
                 final y = centerY + radius * sin(angle);
@@ -103,8 +124,10 @@ class _TarotArcScrollState extends State<TarotArcScroll>
                   child: Transform(
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001) // Tạo phối cảnh
                       ..rotateZ(angle + pi / 2)
-                      ..rotateY((angle - centerAngle) * 0.3),
+                      ..rotateY(0.3)
+                      ..rotateX(-1.1), // Ngả ra sau, phần dưới to hơn
                     child: GestureDetector(
                       onTap: () => setState(() {
                         selectedCard = selectedCard == index ? null : index;
@@ -144,7 +167,7 @@ class _TarotArcScrollState extends State<TarotArcScroll>
                       tag: 'card_$selectedCard',
                       child: TarotCardWidget(
                         imagePath:
-                        'assets/cards/card_${(selectedCard! + 1).toString().padLeft(2, '0')}.jpg',
+                            'assets/cards/card_${(selectedCard! + 1).toString().padLeft(2, '0')}.jpg',
                         size: 300,
                       ),
                     ),
@@ -171,17 +194,14 @@ class TarotCardWidget extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(
-          image: AssetImage(imagePath),
-          fit: BoxFit.cover,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black45,
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
+        image: DecorationImage(image: AssetImage(imagePath), fit: BoxFit.cover),
+        // boxShadow: const [
+        //   BoxShadow(
+        //     color: Colors.black38,
+        //     blurRadius: 12,
+        //     offset: Offset(0, 8),
+        //   ),
+        // ],
       ),
     );
   }

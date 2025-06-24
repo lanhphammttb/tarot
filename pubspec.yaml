@@ -57,6 +57,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/
     - assets/cards/
   #   - images/a_dot_ham.jpeg
 
